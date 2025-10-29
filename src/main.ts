@@ -1,73 +1,91 @@
 // CMPM 121 Smelly Code Activity
 
-// This variable keeps track of the counter
-let c = 0;
+// ==== Conatants and Types ==== //
+const PROJECT_TITLE = "CMPM 121";
 
-// These constants are for button IDs and heading text
-const a = "increment", b = "counter", h = "CMPM 121 Project";
+const IDS = {
+  counter: "counter",
+  increment: "increment",
+  decrement: "dec",
+  reset: "reset",
+} as const;
 
-function setup() {
-  // Create the HTML for the counter
-  document.body.innerHTML = `
-    <h1>${h}</h1>
-    <p>Counter: <span id="${b}">0</span></p>
-    <button id="${a}">Click Me!</button>
-    <button id="dec">Decrement</button>
-    <button id="reset">Reset</button>
+type IdOf<T> = T[keyof T];
+
+interface AppState {
+  count: number;
+}
+
+// ===== Helpers (without DOM access) =====//
+function computeDocumentTitle(count: number): string {
+  return `Clicked ${count}`;
+}
+``;
+function computeBackgroundColor(count: number): string {
+  // odd = pink, even = lightblue
+  return count % 2 ? "pink" : "lightblue";
+}
+
+// ===== DOM helpers ===== //
+function el<T extends HTMLElement = HTMLElement>(id: IdOf<typeof IDS>): T {
+  const node = document.getElementById(id);
+  if (!node) throw new Error(`Missing element: #${id}`);
+  return node as T;
+}
+
+function onClick(id: IdOf<typeof IDS>, handler: () => void): void {
+  el<HTMLButtonElement>(id).addEventListener("click", handler);
+}
+
+function renderAll(state: AppState): void {
+  // Update number
+  el<HTMLSpanElement>(IDS.counter).textContent = String(state.count);
+  // Update title
+  document.title = computeDocumentTitle(state.count);
+  // Update background
+  document.body.style.backgroundColor = computeBackgroundColor(state.count);
+}
+
+// ===== UI bootsrapping ===== //
+function buildUI(): void {
+  document.body.innerHTML = ` 
+    <h1>${PROJECT_TITLE}</h1>
+    <p>Counter: <span id="${IDS.counter}">0</span></p>
+    <div>
+      <button id="${IDS.increment}">Click Me!</button>
+      <button id="${IDS.decrement}">Decrement</button>
+      <button id="${IDS.reset}">Reset</button>
+    </div>
   `;
+}
 
-  // Get the increment button element from the document
-  const bI = document.getElementById(a);
-  // Get the decrement button element from the document
-  const bD = document.getElementById("dec");
-  // Get the reset button element from the document
-  const bR = document.getElementById("reset");
-  // Get the counter span element from the document
-  const ctr = document.getElementById(b);
+// ===== Application ============================================================
+function main(): void {
+  // Encapsulate mutable state rather than a free global variable.
+  const state: AppState = { count: 0 };
 
-  // Check if any element is missing, then exit the function
-  if (!bI || !bD || !bR || !ctr) return;
+  buildUI();
+  renderAll(state);
 
-  // Add click event to the increment button
-  bI.addEventListener("click", () => {
-    // Increase the counter by 1
-    c++;
-    // Update the counter display
-    ctr.innerHTML = `${c}`;
-    // Update the document title
-    document.title = "Clicked " + c;
-    // Change the background color based on even/odd count
-    document.body.style.backgroundColor = c % 2 ? "pink" : "lightblue";
+  onClick(IDS.increment, () => {
+    state.count += 1;
+    renderAll(state);
   });
 
-  // Add click event to the decrement button
-  bD.addEventListener("click", () => {
-    // Decrease the counter by 1
-    c--;
-    // Update the counter display
-    ctr.innerHTML = `${c}`;
-    // Update the document title
-    document.title = "Clicked " + c;
-    // Change the background color based on even/odd count
-    document.body.style.backgroundColor = c % 2 ? "pink" : "lightblue";
+  onClick(IDS.decrement, () => {
+    state.count -= 1;
+    renderAll(state);
   });
 
-  // Add click event to the reset button
-  bR.addEventListener("click", () => {
-    // Reset the counter to 0
-    c = 0;
-    // Update the counter display
-    ctr.innerHTML = `${c}`;
-    // Update the document title
-    document.title = "Clicked " + c;
-    // Change the background color based on even/odd count
-    document.body.style.backgroundColor = c % 2 ? "pink" : "lightblue";
+  onClick(IDS.reset, () => {
+    state.count = 0;
+    renderAll(state);
   });
 }
 
-function start() {
-  // Call setup to initialize the UI
-  setup();
+// Defer startup until DOM is ready in case this script is loaded in <head>.
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", main);
+} else {
+  main();
 }
-// Start the counter app
-start();
